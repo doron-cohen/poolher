@@ -29,6 +29,6 @@ MainLoop:
 			result, err := w.workFunc(job)
 			outChan <- Result[Out]{Value: result, Error: err}
 		}
-		time.Sleep(time.Second)
+		time.Sleep(time.Millisecond)
 	}
 }
