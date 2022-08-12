@@ -17,8 +17,8 @@ func TestWorkerJob(t *testing.T) {
 	go worker.Run(ctx, inChan, outChan)
 
 	inChan <- 2
-	cancel()
 	result := <-outChan
+	cancel()
 	if result.Error != nil {
 		t.Fatalf("Unexpected error returned: %s", result.Error)
 	}
