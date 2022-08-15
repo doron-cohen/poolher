@@ -48,3 +48,31 @@ func TestPoolMultipleWorkers(t *testing.T) {
 
 	stop()
 }
+
+func BenchmarkPool(b *testing.B) {
+	pool := NewPool(32, func(in int) (int, error) {
+		return in * 2, nil
+	})
+
+	ctx := context.Background()
+	stop := pool.Start(ctx)
+
+	go func() {
+		// Drain outchan until stop is called
+	LOOP:
+		for {
+			select {
+			case <-ctx.Done():
+				break LOOP
+			case <-pool.OutChan:
+				continue
+			}
+		}
+	}()
+
+	for i := 0; i < 10_000; i++ {
+		pool.InChan <- 2
+	}
+
+	stop()
+}
