@@ -20,8 +20,8 @@ func NewPool[In interface{}, Out interface{}](
 	workFunc worker.WorkFunc[In, Out],
 ) *Pool[In, Out] {
 	return &Pool[In, Out]{
-		InChan:   make(chan In, 1),
-		OutChan:  make(chan worker.Result[Out], 1),
+		InChan:   make(chan In, size),
+		OutChan:  make(chan worker.Result[Out], size),
 		size:     size,
 		workFunc: workFunc,
 	}
