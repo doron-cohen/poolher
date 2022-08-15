@@ -10,24 +10,40 @@ type Pool[In interface{}, Out interface{}] struct {
 	InChan  chan In
 	OutChan chan worker.Result[Out]
 
+	size     int
 	workFunc worker.WorkFunc[In, Out]
-	worker   *worker.Worker[In, Out]
+	workers  []*worker.Worker[In, Out]
 }
 
 func NewPool[In interface{}, Out interface{}](
+	size int,
 	workFunc worker.WorkFunc[In, Out],
 ) *Pool[In, Out] {
 	return &Pool[In, Out]{
 		InChan:   make(chan In, 1),
 		OutChan:  make(chan worker.Result[Out], 1),
+		size:     size,
 		workFunc: workFunc,
 	}
 }
 
 func (p *Pool[In, Out]) Start(ctx context.Context) context.CancelFunc {
-	p.worker = worker.NewWorker(p.workFunc)
+	p.initWorkers()
 	ctx, stop := context.WithCancel(ctx)
 
-	go p.worker.Run(ctx, p.InChan, p.OutChan)
+	go p.runWorkers(ctx)
 	return stop
+}
+
+func (p *Pool[In, Out]) initWorkers() {
+	p.workers = make([]*worker.Worker[In, Out], p.size)
+	for i := 0; i < p.size; i++ {
+		p.workers[i] = worker.NewWorker(p.workFunc)
+	}
+}
+
+func (p *Pool[In, Out]) runWorkers(ctx context.Context) {
+	for _, w := range p.workers {
+		go w.Run(ctx, p.InChan, p.OutChan)
+	}
 }
