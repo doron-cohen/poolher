@@ -2,6 +2,7 @@ package pool
 
 import (
 	"context"
+	"sync"
 
 	"github.com/doron-cohen/poolher/worker"
 )
@@ -13,6 +14,7 @@ type Pool[In interface{}, Out interface{}] struct {
 	size     int
 	workFunc worker.WorkFunc[In, Out]
 	workers  []*worker.Worker[In, Out]
+	wg       *sync.WaitGroup
 }
 
 func NewPool[In interface{}, Out interface{}](
@@ -24,15 +26,21 @@ func NewPool[In interface{}, Out interface{}](
 		OutChan:  make(chan worker.Result[Out], size),
 		size:     size,
 		workFunc: workFunc,
+		wg:       &sync.WaitGroup{},
 	}
 }
 
 func (p *Pool[In, Out]) Start(ctx context.Context) context.CancelFunc {
 	p.initWorkers()
 	ctx, stop := context.WithCancel(ctx)
+	p.wg.Add(p.size)
 
 	go p.runWorkers(ctx)
 	return stop
+}
+
+func (p *Pool[In, Out]) Wait() {
+	p.wg.Wait()
 }
 
 func (p *Pool[In, Out]) initWorkers() {
@@ -44,6 +52,6 @@ func (p *Pool[In, Out]) initWorkers() {
 
 func (p *Pool[In, Out]) runWorkers(ctx context.Context) {
 	for _, w := range p.workers {
-		go w.Run(ctx, p.InChan, p.OutChan)
+		go w.Run(ctx, p.InChan, p.OutChan, p.wg)
 	}
 }

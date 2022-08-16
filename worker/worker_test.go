@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"sync"
 	"testing"
 )
 
@@ -14,7 +15,9 @@ func TestWorkerJob(t *testing.T) {
 	ctx, cancel := context.WithCancel(ctx)
 	inChan := make(chan int, 1)
 	outChan := make(chan Result[int], 1)
-	go worker.Run(ctx, inChan, outChan)
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go worker.Run(ctx, inChan, outChan, wg)
 
 	inChan <- 2
 	result := <-outChan

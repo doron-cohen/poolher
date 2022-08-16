@@ -3,6 +3,7 @@ package pool
 import (
 	"context"
 	"testing"
+	"time"
 )
 
 func TestPool(t *testing.T) {
@@ -47,6 +48,29 @@ func TestPoolMultipleWorkers(t *testing.T) {
 	}
 
 	stop()
+}
+
+func TestPoolWait(t *testing.T) {
+	pool := NewPool(4, func(in int) (int, error) {
+		time.Sleep(time.Second)
+		return 1, nil
+	})
+
+	ctx := context.Background()
+	stop := pool.Start(ctx)
+
+	for i := 0; i < 4; i++ {
+		pool.InChan <- 1
+	}
+
+	stop()
+	stoppedAt := time.Now()
+
+	pool.Wait()
+	timeWaited := time.Since(stoppedAt)
+	if timeWaited < time.Second {
+		t.Fatalf("Wait didn't wait for pool. Only %s passed", timeWaited)
+	}
 }
 
 func BenchmarkPool(b *testing.B) {

@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"sync"
 	"time"
 )
 
@@ -19,7 +20,9 @@ func NewWorker[In interface{}, Out interface{}](workFunc WorkFunc[In, Out]) *Wor
 	return &Worker[In, Out]{workFunc: workFunc}
 }
 
-func (w *Worker[In, Out]) Run(ctx context.Context, inChan chan In, outChan chan Result[Out]) {
+func (w *Worker[In, Out]) Run(ctx context.Context, inChan chan In, outChan chan Result[Out], wg *sync.WaitGroup) {
+	defer wg.Done()
+
 MainLoop:
 	for {
 		select {
